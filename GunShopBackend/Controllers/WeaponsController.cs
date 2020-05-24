@@ -3,6 +3,8 @@ using Microsoft.EntityFrameworkCore;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using GunShopBackend.Models;
+using System.Linq;
+using System;
 
 namespace GunShopBackend.Controllers
 {
@@ -17,9 +19,21 @@ namespace GunShopBackend.Controllers
 
         // GET: api/<controller>
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Weapon>>> Get()
+        public async Task<ActionResult<IEnumerable<Weapon>>> Get([FromQuery] string type)
         {
-            return await db.Weapons.ToListAsync();
+            var weapons = db.Weapons;
+
+
+            if (type != null)
+            {
+                var typesList = type.Split('-').Select(t => $"{t}").ToArray();
+
+                var query = $"SELECT * from Weapons WHERE Type IN('{ String.Join("', '", typesList) }')";
+                var filtered = weapons.FromSqlRaw(query);
+                return await filtered.ToListAsync();
+            }
+
+            return await weapons.ToListAsync();
         }
 
         // GET api/<controller>/5
@@ -36,6 +50,13 @@ namespace GunShopBackend.Controllers
             if (weapon == null)
             {
                 return BadRequest();
+            }
+
+            Caliber caliberPresence = db.Calibers.FirstOrDefault(item => item.Title == weapon.Caliber);
+
+            if (caliberPresence == null)
+            {
+                db.Calibers.Add(new Caliber(weapon.Caliber));
             }
 
             db.Weapons.Add(weapon);
