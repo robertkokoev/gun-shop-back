@@ -12,5 +12,6 @@
         public int Capacity { get; set; }
         public string Caliber { get; set; }
         public int BulletSpeed { get; set; }
+        public string Images { get; set; }
     }
 }
