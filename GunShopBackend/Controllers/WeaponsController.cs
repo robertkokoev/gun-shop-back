@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using GunShopBackend.Models;
 using System.Linq;
 using System;
+using Microsoft.EntityFrameworkCore.Internal;
 
 namespace GunShopBackend.Controllers
 {
@@ -19,9 +20,9 @@ namespace GunShopBackend.Controllers
 
         // GET: api/<controller>
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Weapon>>> Get([FromQuery] string type)
+        public IEnumerable<Weapon> Get([FromQuery] string type, [FromQuery] int priceFrom, [FromQuery] int priceTo, [FromQuery] string manufacturer)
         {
-            var weapons = db.Weapons;
+            var weapons = db.Weapons.ToList();
 
 
             if (type != null)
@@ -29,11 +30,30 @@ namespace GunShopBackend.Controllers
                 var typesList = type.Split('-').Select(t => $"{t}").ToArray();
 
                 var query = $"SELECT * from Weapons WHERE Type IN('{ String.Join("', '", typesList) }')";
-                var filtered = weapons.FromSqlRaw(query);
-                return await filtered.ToListAsync();
+                var filtered = db.Weapons.FromSqlRaw(query);
+
+                weapons = filtered.ToList();
             }
 
-            return await weapons.ToListAsync();
+            if (priceFrom != 0)
+            {
+                weapons = weapons.Where(item => item.Price > priceFrom).ToList();
+            }
+
+            if (priceTo != 0)
+            {
+                weapons = weapons.Where(item => item.Price < priceTo).ToList();
+            }
+
+            if (manufacturer != null)
+            {
+                var ids = manufacturer.Split('-').Select(m => Convert.ToInt32($"{m}")).ToArray();
+
+                weapons = weapons.Where(w => ids.Contains(w.ManufacturerId)).ToList();
+            }
+
+
+            return weapons;
         }
 
         // GET api/<controller>/5
